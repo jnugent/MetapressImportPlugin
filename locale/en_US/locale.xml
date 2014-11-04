@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE locale SYSTEM "../../../../../lib/pkp/dtd/locale.dtd">
+
+<!--
+  * plugins/importexport/metapress/locale/en_US/locale.xml
+  *
+  * Copyright (c) 2013-2014 Simon Fraser University Library
+  * Copyright (c) 2003-2014 John Willinsky
+  * Distributed under the GNU GPL v2. For full terms see the file docs/COPYING.
+  *
+  * Localization strings
+  -->
+
+<locale name="en_US" full_name="U.S. English">
+	<message key="plugins.importexport.metapress.displayName">Metapress XML Content Import Plugin</message>
+	<message key="plugins.importexport.metapress.description">Import submissions into journals from metapress XML.</message>
+
+	<message key="plugins.importexport.metapress.cliUsage"><![CDATA[Command-line tool for importing metapress XML data into OJS
+			Usage:
+			{$scriptName} [--dry-run] directoryName username
+			The --dry-run option can be used to test without making changes.
+			The directoryName option must point to the directory containing the subdirectories of MetaPress XML.
+			Specify the username you wish to assign the submissions to.
+]]></message>
+
+	<message key="plugins.importexport.metapress.directoryDoesNotExist">The directory "{$directory}" does not exist.  Exiting.</message>
+	<message key="plugins.importexport.metapress.unknownUser">Unknown User: "{$username}".  Exiting.</message>
+	<message key="plugins.importexport.metapress.invalidDate">Invalid date format: {$value}.  Skipping.</message>
+	<message key="plugins.importexport.metapress.unknownLocale">Unknown Locale: "{$locale}".  Skipping.</message>
+	<message key="plugins.importexport.metapress.unknownJournal">Unknown Journal: "{$journalPath}".  Skipping.</message>
+	<message key="plugins.importexport.metapress.noAuthorGroup">There is no default author group in the press {$press}.  Skipping this submission.</message>
+	<message key="plugins.importexport.metapress.import.error.noJournalSection">There is no default author group in the press {$press}.  Skipping this submission.</message>
+	<message key="plugins.importexport.metapress.import.error.articleTitleLocaleUnsupported">The article title locale is unsupported.</message>
+	<message key="plugins.importexport.metapress.import.error.articleTitleMissing">The article title is missing.</message>
+	<message key="plugins.importexport.metapress.import.error.duplicatePublicArticleId">There is already a published article with this DOI: {$anotherArticle}</message>
+	<message key="plugins.importexport.metapress.import.submission">Submission: '{$title}' successfully imported.</message>
+	<message key="plugins.importexport.metapress.import.success.description">The import was successful. Successfully-imported items are listed below.</message>
+
+</locale>
