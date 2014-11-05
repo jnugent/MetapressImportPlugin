@@ -86,28 +86,34 @@ class MetapressImportPlugin extends ImportExportPlugin {
 			$metapPressDirectoryPath = $directory . "/" . $entry;
 			if (is_dir($metapPressDirectoryPath) && !preg_match('/^\./', $entry)) { // is a directory, but not a hidden one or . or ..
 				$metapressDirHandle = opendir($metapPressDirectoryPath);
+				$submissionFile = null;
+				$doc = null;
+
 				while (($mpEntry = readdir($metapressDirHandle)) !== false) {
 
 					$metapressFile = $metapPressDirectoryPath . "/" . $mpEntry;
-					$submissionFile = null;
 					if (is_file($metapressFile)) {
 						// two possibilities.  An XML file, or a document.
 						if (preg_match('/\.xml$/', $mpEntry)) {
-
 							$doc = $this->getDocument($metapressFile);
-							$journal = MetapressImportDom::retrieveJournal($doc, $path);
-							if ($journal) {
-								$issue = MetapressImportDom::importIssue($journal, $doc);
-								if ($issue) {
-									$result = MetapressImportDom::importArticle($journal, $doc, $issue, $errors, $user);
-								}
-							} else {
-								echo __('plugins.importexport.metapress.unknownJournal', array('journalPath' => $path)) . "\n";
-							}
 						} else {
 							$submissionFile = $metapressFile;
 						}
 					}
+				}
+
+				if ($doc) {
+					$journal = MetapressImportDom::retrieveJournal($doc, $path);
+					if ($journal) {
+						$issue = MetapressImportDom::importIssue($journal, $doc);
+						if ($issue) {
+							$result = MetapressImportDom::importArticle($journal, $doc, $issue, $submissionFile, $errors, $user);
+						}
+					} else {
+						echo __('plugins.importexport.metapress.unknownJournal', array('journalPath' => $path)) . "\n";
+					}
+				} else {
+					echo __('plugins.importexport.metapress.unableToParseDocument', array('directory' => $metapPressDirectoryPath)) . "\n";
 				}
 			}
 

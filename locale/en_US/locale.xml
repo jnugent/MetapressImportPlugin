@@ -28,6 +28,7 @@
 	<message key="plugins.importexport.metapress.invalidDate">Invalid date format: {$value}.  Skipping.</message>
 	<message key="plugins.importexport.metapress.unknownLocale">Unknown Locale: "{$locale}".  Skipping.</message>
 	<message key="plugins.importexport.metapress.unknownJournal">Unknown Journal: "{$journalPath}".  Skipping.</message>
+	<message key="plugins.importexport.metapress.unableToParseXMLDocument">Unable to parse XML document in {$directory}.  Skipping.</message>
 	<message key="plugins.importexport.metapress.noAuthorGroup">There is no default author group in the press {$press}.  Skipping this submission.</message>
 	<message key="plugins.importexport.metapress.import.error.noJournalSection">There is no default author group in the press {$press}.  Skipping this submission.</message>
 	<message key="plugins.importexport.metapress.import.error.articleTitleLocaleUnsupported">The article title locale is unsupported.</message>

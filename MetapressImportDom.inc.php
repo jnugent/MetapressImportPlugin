@@ -17,9 +17,9 @@ import('lib.pkp.classes.xml.XMLCustomWriter');
 
 class MetapressImportDom {
 
-	function importArticle(&$journal, &$node, &$issue, &$errors, &$user) {
+	function importArticle(&$journal, &$node, &$issue, &$submissionFile, &$errors, &$user) {
 		$dependentItems = array();
-		$result = MetapressImportDom::handleArticleNode($journal, $node, $issue, $errors, $user, $dependentItems);
+		$result = MetapressImportDom::handleArticleNode($journal, $node, $issue, $submissionFile, $errors, $user, $dependentItems);
 		if (!$result) {
 			MetapressImportDom::cleanupFailure ($dependentItems);
 		}
@@ -131,7 +131,17 @@ class MetapressImportDom {
 		return $issue;
 	}
 
-	function handleArticleNode($journal, $doc, $issue, $errors, $user, $dependentItems) {
+	/**
+	 * Handle the Article node and build the article object found in the XML.
+	 * @param Journal $journal
+	 * @param DOMNode $doc
+	 * @param Issue $issue
+	 * @param string $submissionFile
+	 * @param array $errors
+	 * @param User $user
+	 * @param array $dependentItems
+	 */
+	function handleArticleNode($journal, $doc, $issue, $submissionFile, $errors, $user, $dependentItems) {
 		$errors = array();
 
 		$articleNode = MetapressImportDom::getArticleNode($doc);
@@ -422,7 +432,7 @@ class MetapressImportDom {
 		if ($articleInfoNode) {
 			$galleyUrlNode = $articleInfoNode->getChildByName('FullTextURL');
 			$galleyFileNameNode = $articleInfoNode->getChildByName('FullTextFileName');
-			$result = MetapressImportDom::handleGalleyNode($journal, $galleyUrlNode->getValue(), $galleyFileNameNode->getValue(), $article, $errors, $articleFileManager);
+			$result = MetapressImportDom::handleGalleyNode($journal, $galleyUrlNode->getValue(), $galleyFileNameNode->getValue(), $submissionFile, $article, $errors, $articleFileManager);
 			if (!$result) return false;
 		}
 
@@ -486,11 +496,12 @@ class MetapressImportDom {
 	 * @param Journal $journal
 	 * @param string $galleyUrl
 	 * @param string $galleyFileName
+	 * @param string $submissionFile
 	 * @param Article $article
 	 * @param array $errors
 	 * @param ArticleFileManager $articleFileManager
 	 */
-	function handleGalleyNode(&$journal, &$galleyUrl, $galleyFileName, &$article, &$errors, &$articleFileManager) {
+	function handleGalleyNode(&$journal, &$galleyUrl, $galleyFileName, &$submissionFile, &$article, &$errors, &$articleFileManager) {
 		$errors = array();
 
 		$journalSupportedLocales = array_keys($journal->getSupportedLocaleNames()); // => journal locales must be set up before
@@ -510,7 +521,10 @@ class MetapressImportDom {
 		import('classes.file.TemporaryFileManager');
 		import('classes.file.FileManager');
 
-		if (($fileId = $articleFileManager->copyPublicFile($galleyUrl, 'application/pdf'))===false) {
+		// Copy the included file if present, otherwise attempt the URL.
+		$fileUrl = (isset($submissionFile)) ? $submissionFile : $galleyUrl;
+
+		if (($fileId = $articleFileManager->copyPublicFile($fileUrl, 'application/pdf'))===false) {
 			$errors[] = array('plugins.importexport.metapress.import.error.couldNotCopy', array('url' => $url));
 			return false;
 		}
