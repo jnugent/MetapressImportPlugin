@@ -31,13 +31,14 @@ class MetapressImportDom {
 		$issue = null;
 		$hasErrors = false;
 		$volumeNumber = null;
+		$issueNumber = null;
 
-		$issueNode = MetapressImportDom::getIssueNode($doc, $volumeNumber);
+		$issueNode = MetapressImportDom::getIssueNode($doc, $volumeNumber, $issueNumber);
 		$issueDao =& DAORegistry::getDAO('IssueDAO');
 
 		// short circuit all of this, if the volume number is already in use.
 		// If so, return that issue.
-		$issues = $issueDao->getPublishedIssuesByNumber($journal->getId(), $volumeNumber);
+		$issues = $issueDao->getPublishedIssuesByNumber($journal->getId(), $volumeNumber, $issueNumber);
 		$issues = $issues->toArray();
 		if (count($issues) == 1) {
 			return $issues[0];
@@ -49,6 +50,10 @@ class MetapressImportDom {
 
 		if (is_numeric($volumeNumber)) {
 			$issue->setVolume($volumeNumber);
+		}
+
+		if (is_numeric($issueNumber)) {
+			$issue->setNumber($issueNumber);
 		}
 
 		$journalSupportedLocales = array_keys($journal->getSupportedLocaleNames()); // => journal locales must be set up before
@@ -589,15 +594,22 @@ class MetapressImportDom {
 	 * Fetch the issue node represented.
 	 * @param DOMDocument $doc
 	 * @param String $volumeNumber
+	 * @param String $issueNumber
 	 * @return DOMNode
 	 */
-	function getIssueNode(&$doc, &$volumeNumber) {
+	function getIssueNode(&$doc, &$volumeNumber, &$issueNumber) {
 		if (($node = $doc->getChildByName('Journal'))) {
 			$volumeNode = $node->getChildByName('Volume');
 			$volumeInfoNode = $volumeNode->getChildByName('VolumeInfo');
 			$volumeNumberNode = $volumeInfoNode->getChildByName('VolumeNumber');
 			$volumeNumber = $volumeNumberNode->getValue();
 			$issueNode = $volumeNode->getChildByName('Issue');
+			$issueInfoNode = $issueNode->getChildByName('IssueInfo');
+			$issueNumberBeginNode = $issueInfoNode->getChildByName('IssueNumberBegin');
+
+			if ($issueNumberBeginNode) {
+				$issueNumber = $issueNumberBeginNode->getValue();
+			}
 
 			return $issueNode;
 		}
