@@ -108,6 +108,9 @@ class MetapressImportPlugin extends ImportExportPlugin {
 						$issue = MetapressImportDom::importIssue($journal, $doc);
 						if ($issue) {
 							$result = MetapressImportDom::importArticle($journal, $doc, $issue, $submissionFile, $errors, $user);
+							if ($result) {
+								echo __('plugins.importexport.metapress.articleImported') . "\n";
+							}
 						}
 					} else {
 						echo __('plugins.importexport.metapress.unknownJournal', array('journalPath' => $path)) . "\n";

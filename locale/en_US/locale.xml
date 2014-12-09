@@ -17,8 +17,7 @@
 
 	<message key="plugins.importexport.metapress.cliUsage"><![CDATA[Command-line tool for importing metapress XML data into OJS
 			Usage:
-			{$scriptName} [--dry-run] directoryName username
-			The --dry-run option can be used to test without making changes.
+			{$scriptName} directoryName username
 			The directoryName option must point to the directory containing the subdirectories of MetaPress XML.
 			Specify the username you wish to assign the submissions to.
 ]]></message>
@@ -36,5 +35,6 @@
 	<message key="plugins.importexport.metapress.import.error.duplicatePublicArticleId">There is already a published article with this DOI: {$anotherArticle}</message>
 	<message key="plugins.importexport.metapress.import.submission">Submission: '{$title}' successfully imported.</message>
 	<message key="plugins.importexport.metapress.import.success.description">The import was successful. Successfully-imported items are listed below.</message>
+	<message key="plugins.importexport.metapress.articleImported">Article successfully imported ....</message>
 
 </locale>
