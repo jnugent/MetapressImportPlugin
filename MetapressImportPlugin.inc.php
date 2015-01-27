@@ -87,17 +87,23 @@ class MetapressImportPlugin extends ImportExportPlugin {
 			if (is_dir($metapPressDirectoryPath) && !preg_match('/^\./', $entry)) { // is a directory, but not a hidden one or . or ..
 				$metapressDirHandle = opendir($metapPressDirectoryPath);
 				$submissionFile = null;
+				$htmlFile = null;
 				$doc = null;
 
 				while (($mpEntry = readdir($metapressDirHandle)) !== false) {
 
 					$metapressFile = $metapPressDirectoryPath . "/" . $mpEntry;
 					if (is_file($metapressFile)) {
-						// two possibilities.  An XML file, or a document.
+						// three possibilities.  An XML file, or a document that can be either PDF or HTML.
+						// we exclude testing for the mediaobjects directory at this point
 						if (preg_match('/\.xml$/', $mpEntry)) {
 							$doc = $this->getDocument($metapressFile);
 						} else {
-							$submissionFile = $metapressFile;
+							if (preg_match('/\.pdf$/', $mpEntry)) {
+								$submissionFile = $metapressFile;
+							} else {
+								$htmlFile = $metapressFile;
+							}
 						}
 					}
 				}
@@ -107,9 +113,16 @@ class MetapressImportPlugin extends ImportExportPlugin {
 					if ($journal) {
 						$issue = MetapressImportDom::importIssue($journal, $doc);
 						if ($issue) {
-							$result = MetapressImportDom::importArticle($journal, $doc, $issue, $submissionFile, $errors, $user);
-							if ($result) {
-								echo __('plugins.importexport.metapress.articleImported') . "\n";
+							$article = MetapressImportDom::importArticle($journal, $doc, $issue, $submissionFile, $errors, $user);
+							if ($article) {
+								// we have successfully dealt with the XML and PDF.  If there is an HTML
+								// galley, do that now.
+								if ($htmlFile != null) {
+									$articleHTMLGalley = $this->importHTMLGalley($htmlFile, $article, $journal, $metapPressDirectoryPath);
+								}
+								if ($article) {
+									echo __('plugins.importexport.metapress.articleImported') . "\n";
+								}
 							}
 						}
 					} else {
@@ -140,6 +153,93 @@ class MetapressImportPlugin extends ImportExportPlugin {
 		$parser = new XMLParser();
 		$returner =& $parser->parse($fileName);
 		return $returner;
+	}
+
+	/**
+	 * Import an HTML galley and assoiated Media Objects (images).
+	 * @param string $htmlFile the full path to the HTML galley file
+	 * @param Article $article
+	 * @param Journal $journal
+	 * @param string $metapressDirectoryPath the base directory for this Metapress object.
+	 * @return ArticleHTMLgalley
+	 */
+	function importHTMLGalley($htmlFile, $article, $journal, $metapressDirectoryPath) {
+		$journalSupportedLocales = array_keys($journal->getSupportedLocaleNames()); // => journal locales must be set up before
+		$galleyDao =& DAORegistry::getDAO('ArticleGalleyDAO');
+
+		$galley = new ArticleHTMLGalley();
+
+		$galley->setArticleId($article->getId());
+		$galley->setSequence(2);  // Assume we have already imported a PDF at this point.
+
+		$galley->setLocale($article->getLocale());
+
+		/* --- Galley Label --- */
+		$galley->setLabel('HTML');
+
+		// Submission File.
+		import('classes.file.TemporaryFileManager');
+		import('classes.file.FileManager');
+
+		import('classes.file.ArticleFileManager');
+		$articleFileManager = new ArticleFileManager($article->getId());
+
+		if (($fileId = $articleFileManager->copyPublicFile($htmlFile, 'text/html'))===false) {
+			$errors[] = array('plugins.importexport.metapress.import.error.couldNotCopy', array('url' => $htmlFile));
+			return false;
+		}
+
+		if (!isset($fileId)) {
+			$errors[] = array('plugins.importexport.metapress.import.error.galleyFileMissing', array('articleTitle' => $article->getLocalizedTitle(), 'sectionTitle' => $section->getLocalizedTitle(), 'issueTitle' => $issue->getIssueIdentification()));
+			return false;
+		}
+		$galley->setFileId($fileId);
+		// Update the article file original name with the name from the HTML element.
+		// handleCopy() uses the basename of the URL by default.
+
+		$articleFileDao = DAORegistry::getDAO('ArticleFileDAO');
+		$articleFile = $articleFileDao->getArticleFile($fileId);
+		$galleyFileName = $htmlFile;
+		if (preg_match('|/([^/]+)$|', $htmlFile, $matches)) {
+			$galleyFileName = $matches[1];
+		}
+		$articleFile->setOriginalFileName($galleyFileName);
+		$articleFileDao->updateArticleFile($articleFile);
+		$galleyId = $galleyDao->insertGalley($galley);
+
+		// Galley created.  Check for mediaobjects directory.
+		$mediaObjectsDir = $metapressDirectoryPath . '/mediaobjects';
+		if (is_dir($mediaObjectsDir)) {
+
+			$handle = opendir($mediaObjectsDir);
+			while (($entry = readdir($handle)) !== false) {
+				$mediaFile = $mediaObjectsDir . '/' . $entry;
+				if (is_file($mediaFile) && !preg_match('/^\./', $entry)) { // it' a file, not . or ..
+					if ($fileId = $articleFileManager->copyPublicFile($mediaFile, $articleFileManager->getUploadedFileType($mediaFile))) {
+
+						// fix the file name and mime type since this was copied and we don't
+						// really know the mime.
+						$mediaObjectFile = $articleFileDao->getArticleFile($fileId);
+						$fileExtension = $articleFileManager->parseFileExtension($mediaObjectFile->getOriginalFileName());
+						switch ($fileExtension) {
+							case 'jpg':
+								$mediaObjectFile->setFileType('image/jpeg');
+								break;
+							default:
+								$mediaObjectFile->setFileType('image/' . str_replace('.', '', $fileExtension));
+						}
+
+						$mediaObjectFile->setOriginalFileName('mediaobjects/' . $mediaObjectFile->getOriginalFileName());
+						$articleFileDao->updateArticleFile($mediaObjectFile);
+
+						$galleyDao->insertGalleyImage($galleyId, $fileId);
+						$galley->setImageFiles($galleyDao->getGalleyImages($galleyId));
+						$galleyDao->updateGalley($galley);
+					}
+				}
+			}
+		}
+		return $galley;
 	}
 }
 ?>

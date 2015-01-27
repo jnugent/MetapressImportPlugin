@@ -26,6 +26,12 @@ class MetapressImportDom {
 		return $result;
 	}
 
+	/**
+	 * Import an isue.
+	 * @param Journal $journal
+	 * @param XMLDocument $doc
+	 * @return Issue
+	 */
 	function importIssue(&$journal, &$doc) {
 		$errors = array();
 		$issue = null;
@@ -145,6 +151,7 @@ class MetapressImportDom {
 	 * @param array $errors
 	 * @param User $user
 	 * @param array $dependentItems
+	 * @return $article the imported article
 	 */
 	function handleArticleNode($journal, $doc, $issue, $submissionFile, $errors, $user, $dependentItems) {
 		$errors = array();
@@ -219,18 +226,43 @@ class MetapressImportDom {
 		}
 
 		$titleExists = false;
-		for ($index=0; ($node = $articleInfoNode->getChildByName('ArticleTitle', $index)); $index++) {
+
+		// Check to see if we have <ArticleTitle> or <ArticleTitleGroup> with <Title> and <Subtitle>.
+		$testNode = $articleInfoNode->getChildByName('ArticleTitle');
+		$nodeName = ($testNode) ? 'ArticleTitle' : 'ArticleTitleGroup';
+
+		for ($index=0; ($node = $articleInfoNode->getChildByName($nodeName, $index)); $index++) {
 			$locale = $node->getAttribute('Language');
 			$foundLocale = false;
 			if ($locale == '') {
 				$foundLocale = true;
 				$locale = $article->getLocale();
-				$article->setTitle($node->getValue(), $locale);
+				switch ($nodeName) {
+					case 'ArticleTitle':
+						$article->setTitle($node->getValue(), $locale);
+						break;
+					case 'ArticleTitleGroup':
+						$titleNode = $node->getChildByName('Title');
+						if ($titleNode) {
+							$article->setTitle($titleNode->getValue(), $locale);
+						}
+						break;
+				}
 			} else {
 				foreach ($journalSupportedLocales as $journalLocale) {
 					// Metapress uses two character locale codes (En, Fr, ... )
 					if (preg_match('/^' . preg_quote($locale) . '_\w{2}$/i', $journalLocale)) {
-						$article->setTitle($node->getValue(), $journalLocale);
+						switch ($nodeName) {
+							case 'ArticleTitle':
+								$article->setTitle($node->getValue(), $journalLocale);
+								break;
+							case 'ArticleTitleGroup':
+								$titleNode = $node->getChildByName('Title');
+								if ($titleNode) {
+									$article->setTitle($titleNode->getValue(), $journalLocale);
+								}
+								break;
+						}
 						$foundLocale = true;
 					}
 				}
@@ -448,7 +480,7 @@ class MetapressImportDom {
 		$articleSearchIndex->articleFilesChanged($article);
 		$articleSearchIndex->articleChangesFinished();
 
-		return true;
+		return $article;
 	}
 
 	/**
@@ -621,7 +653,7 @@ class MetapressImportDom {
 	 * @return DOMNode
 	 */
 	function getArticleNode(&$doc) {
-		$issueNode = MetapressImportDom::getIssueNode($doc, $volumeNumber);
+		$issueNode = MetapressImportDom::getIssueNode($doc, $volumeNumber, $issueNumber);
 		if (($node = $issueNode->getChildByName('Article'))) {
 			return $node;
 		}
