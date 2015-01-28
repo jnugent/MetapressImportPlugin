@@ -229,7 +229,6 @@ class MetapressImportPlugin extends ImportExportPlugin {
 								$mediaObjectFile->setFileType('image/' . str_replace('.', '', $fileExtension));
 						}
 
-						$mediaObjectFile->setOriginalFileName('mediaobjects/' . $mediaObjectFile->getOriginalFileName());
 						$articleFileDao->updateArticleFile($mediaObjectFile);
 
 						$galleyDao->insertGalleyImage($galleyId, $fileId);
